@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toolsuite: PDF Merger</title>
+    <title>Toolsuite: All-in-One PDF Workspace</title>
     <style>
         /* Global Minimalist Styling */
         body {
@@ -18,7 +18,7 @@
 
         header {
             border-bottom: 5px solid #000;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         h1 {
@@ -31,68 +31,64 @@
         h2 {
             font-size: 1.2rem;
             text-transform: uppercase;
-            border-bottom: 2px solid #000;
+            background-color: #000;
+            color: #fff;
             display: inline-block;
-            margin-top: 20px;
-            margin-bottom: 15px;
+            padding: 2px 8px;
+            margin-top: 0;
         }
 
-        /* Input & Controls */
-        #input-files {
-            margin-bottom: 30px;
+        section {
+            margin-bottom: 40px;
+            padding: 20px 0;
         }
 
-        input[type="file"] {
+        /* Form Elements */
+        input[type="file"], 
+        input[type="text"] {
             display: block;
-            margin: 20px 0;
             font-family: 'Courier New', Courier, monospace;
-            border: 1px solid #000;
+            border: 2px solid #000;
             padding: 10px;
             width: 100%;
             box-sizing: border-box;
+            margin: 15px 0;
+        }
+
+        input[type="text"]::placeholder {
+            color: #888;
         }
 
         button {
             font-family: 'Courier New', Courier, monospace;
-            background-color: #000;
-            color: #fff;
+            background-color: #ffffff;
+            color: #000000;
             border: 2px solid #000;
             padding: 10px 20px;
             text-transform: uppercase;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.1s;
         }
 
-        button:hover:not(:disabled) {
-            background-color: #fff;
-            color: #000;
+        button:hover {
+            background-color: #000;
+            color: #fff;
         }
 
-        button:disabled {
-            background-color: #ccc;
-            border-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* File List Display */
-        #fileList {
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-
-        .file-item {
-            border: 1px dashed #000;
-            padding: 5px 10px;
-            margin-bottom: 5px;
-            background: #f9f9f9;
-        }
-
-        /* Utils */
+        /* UI Helpers */
         hr {
             border: none;
             border-top: 1px solid #000;
-            margin: 40px 0;
+            margin: 0;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #000;
+            display: inline-block;
+            min-width: 200px;
         }
 
         a {
@@ -106,11 +102,6 @@
             color: #fff;
         }
 
-        small {
-            display: block;
-            margin-top: 5px;
-        }
-
         footer {
             margin-top: 60px;
             font-size: 0.9rem;
@@ -120,38 +111,47 @@
 <body>
 
     <header>
-        <h1>PDF Merger</h1>
-        <p>Select two or more PDF files to merge them instantly in your browser.</p>
-        <p><strong>No upload. No login. No server.</strong></p>
+        <h1>PDF Toolsuite</h1>
+        <p>No Logins. No Paywalls. Processing happens entirely in your browser.</p>
     </header>
 
     <main>
-        <section id="input-files">
-            <h2>Select Files</h2>
-            <input type="file" id="pdfFileInput" accept=".pdf" multiple>
-            <p>
-                <small>Hold <strong>Ctrl</strong> or <strong>Cmd</strong> to select multiple files.</small>
-            </p>
-            <div id="fileList">
-                </div>
+        <section>
+            <h2>1. Merge PDFs</h2>
+            <p>Combine multiple PDFs into one document.</p>
+            <input type="file" id="mergeInput" accept=".pdf" multiple>
+            <button id="mergeBtn">Merge & Download</button>
         </section>
-        
+
         <hr>
 
-        <section id="controls">
-            <button id="mergeButton" disabled>Merge PDFs and Download</button>
-            <p id="statusMessage" style="font-style: italic; margin-top: 15px;">Awaiting file selection...</p>
+        <section>
+            <h2>2. Split PDF / Extract Pages</h2>
+            <p>Upload a PDF and specify which pages to keep.</p>
+            <input type="file" id="splitInput" accept=".pdf">
+            <input type="text" id="splitRange" placeholder="e.g. 1-3, 5">
+            <button id="splitBtn">Extract & Download</button>
         </section>
 
+        <hr>
+
+        <section>
+            <h2>3. Images to PDF</h2>
+            <p>Convert JPG/PNG images into a single PDF document.</p>
+            <input type="file" id="imgToPdfInput" accept="image/jpeg, image/png" multiple>
+            <button id="imgToPdfBtn">Convert & Download</button>
+        </section>
+
+        <p id="status">System Ready: Awaiting action...</p>
     </main>
 
     <footer>
         <hr>
-        <p><a href="https://project-toolsuite.vercel.app">← Back to Project Toolsuite Home</a></p>
+        <p><a href="index.html">← Back to Home</a></p>
     </footer>
 
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="merger-logic.js"></script>
+    <script src="pdf-logic.js"></script>
 
 </body>
 </html>
