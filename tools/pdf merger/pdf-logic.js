@@ -1,15 +1,17 @@
 'use strict';
 
 // --- Initialize PDF.js for Visual Preview ---
-// Using a CDN for the worker to allow visual rendering
-const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
-const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+// Check if the library is loaded before accessing its properties
+const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
 
-// Load worker
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+// Point to the worker source correctly
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 const status = document.getElementById('status');
+const splitInput = document.getElementById('splitInput');
+const previewContainer = document.getElementById('pdfPreviewContainer');
+const splitRangeInput = document.getElementById('splitRange');
+
 let selectedPages = new Set();
 
 // --- Helper: Download function ---
@@ -33,7 +35,8 @@ document.getElementById('mergeBtn').onclick = async () => {
     try {
         const mergedDoc = await PDFLib.PDFDocument.create();
         for (const file of files) {
-            const doc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+            const arrayBuffer = await file.arrayBuffer();
+            const doc = await PDFLib.PDFDocument.load(arrayBuffer);
             const pages = await mergedDoc.copyPages(doc, doc.getPageIndices());
             pages.forEach(p => mergedDoc.addPage(p));
         }
@@ -46,9 +49,6 @@ document.getElementById('mergeBtn').onclick = async () => {
 };
 
 // --- 2. SPLIT LOGIC (With Visual Preview) ---
-const splitInput = document.getElementById('splitInput');
-const previewContainer = document.getElementById('pdfPreviewContainer');
-const splitRangeInput = document.getElementById('splitRange');
 
 // When user selects a file for splitting, generate thumbnails
 splitInput.onchange = async (e) => {
@@ -62,7 +62,9 @@ splitInput.onchange = async (e) => {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        // Load the PDF via PDF.js
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
 
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -71,15 +73,18 @@ splitInput.onchange = async (e) => {
             const wrapper = document.createElement('div');
             wrapper.style.display = "inline-block";
             wrapper.style.textAlign = "center";
-            wrapper.style.margin = "5px";
+            wrapper.style.margin = "10px";
+            wrapper.style.padding = "5px";
+            wrapper.style.border = "1px solid #ddd";
 
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-            canvas.style.border = "3px solid #ccc";
+            canvas.style.border = "3px solid transparent";
             canvas.style.cursor = "pointer";
             
+            // Render PDF page to canvas
             await page.render({ canvasContext: context, viewport: viewport }).promise;
 
             const label = document.createElement('div');
@@ -89,7 +94,7 @@ splitInput.onchange = async (e) => {
             canvas.onclick = () => {
                 if (selectedPages.has(i)) {
                     selectedPages.delete(i);
-                    canvas.style.border = "3px solid #ccc";
+                    canvas.style.border = "3px solid transparent";
                 } else {
                     selectedPages.add(i);
                     canvas.style.border = "3px solid blue";
@@ -102,10 +107,10 @@ splitInput.onchange = async (e) => {
             wrapper.appendChild(label);
             previewContainer.appendChild(wrapper);
         }
-        status.textContent = "Preview loaded. Click pages to select.";
+        status.textContent = `Loaded ${pdf.numPages} pages. Click pages to select.`;
     } catch (err) {
         status.textContent = "Error loading preview.";
-        console.error(err);
+        console.error("PDF.js Error:", err);
     }
 };
 
@@ -115,27 +120,27 @@ document.getElementById('splitBtn').onclick = async () => {
     if (!file || !range) return alert("Select a file and click pages (or type range)");
 
     status.textContent = "Splitting...";
-    const doc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
-    const newDoc = await PDFLib.PDFDocument.create();
-    
-    const pageIndices = [];
-    range.split(',').forEach(part => {
-        part = part.trim();
-        if (part.includes('-')) {
-            const [start, end] = part.split('-').map(Number);
-            for (let i = start; i <= end; i++) pageIndices.push(i - 1);
-        } else if (part !== "") {
-            pageIndices.push(Number(part) - 1);
-        }
-    });
-
     try {
+        const doc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+        const newDoc = await PDFLib.PDFDocument.create();
+        
+        const pageIndices = [];
+        range.split(',').forEach(part => {
+            part = part.trim();
+            if (part.includes('-')) {
+                const [start, end] = part.split('-').map(Number);
+                for (let i = start; i <= end; i++) pageIndices.push(i - 1);
+            } else if (part !== "" && !isNaN(part)) {
+                pageIndices.push(Number(part) - 1);
+            }
+        });
+
         const pages = await newDoc.copyPages(doc, pageIndices);
         pages.forEach(p => newDoc.addPage(p));
         const bytes = await newDoc.save();
         downloadFile(bytes, "extracted_pages.pdf");
     } catch (e) {
-        alert("Check your page range. " + e.message);
+        alert("Check your page range. Error: " + e.message);
     }
 };
 
@@ -145,23 +150,28 @@ document.getElementById('imgToPdfBtn').onclick = async () => {
     if (files.length === 0) return alert("Select at least one image");
 
     status.textContent = "Converting Images...";
-    const pdfDoc = await PDFLib.PDFDocument.create();
+    try {
+        const pdfDoc = await PDFLib.PDFDocument.create();
 
-    for (const file of files) {
-        const bytes = await file.arrayBuffer();
-        let img;
-        try {
-            if (file.type === "image/jpeg") img = await pdfDoc.embedJpg(bytes);
-            else if (file.type === "image/png") img = await pdfDoc.embedPng(bytes);
-            else continue;
+        for (const file of files) {
+            const bytes = await file.arrayBuffer();
+            let img;
+            if (file.type === "image/jpeg" || file.type === "image/jpg") {
+                img = await pdfDoc.embedJpg(bytes);
+            } else if (file.type === "image/png") {
+                img = await pdfDoc.embedPng(bytes);
+            } else {
+                continue; // Skip non-supported types
+            }
 
             const page = pdfDoc.addPage([img.width, img.height]);
             page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-        } catch (err) {
-            console.error("Skipping incompatible image:", file.name);
         }
-    }
 
-    const finalBytes = await pdfDoc.save();
-    downloadFile(finalBytes, "images_converted.pdf");
+        const finalBytes = await pdfDoc.save();
+        downloadFile(finalBytes, "images_converted.pdf");
+    } catch (err) {
+        status.textContent = "Error converting images.";
+        console.error(err);
+    }
 };
