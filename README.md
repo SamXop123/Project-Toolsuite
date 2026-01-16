@@ -19,8 +19,8 @@ We kickin' corpo butts with this one 🗣️🔥🔥🔥🔥
 
 | Rank | Contributor | Points | Commits |
 |-----:|------------|-------:|--------:|
-| 1 | @Winter262005 | 96 | 96 |
-| 2 | @AdityaMittal08 | 5 | 5 |
+| 1 | @Winter262005 | 97 | 97 |
+| 2 | @AdityaMittal08 | 6 | 6 |
 | 3 | @anshul-lh44 | 1 | 1 |
 | 4 | @Pranavkale11 | 1 | 1 |
 | 5 | @SamXop123 | 1 | 1 |
